@@ -1,21 +1,11 @@
 <template>
   <div class="dashboard-container">
-    <div class="welcome-banner">
-      <div class="banner-text">
-        <h2>{{ greeting }}，管理员</h2>
-        <p>欢迎回到 Deep-SCL-Cat 心理风险预测系统。系统当前运行平稳。</p>
-      </div>
-      <div class="banner-img">
-        <el-icon :size="100" color="rgba(255,255,255,0.2)"><DataLine /></el-icon>
-      </div>
-    </div>
-
     <el-row :gutter="20" class="stat-row">
       <el-col :xs="24" :sm="12" :md="6">
         <el-card class="stat-card" :body-style="{ padding: '20px' }" shadow="hover">
           <div class="stat-content">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #409EFF, #337ecc)">
-              <el-icon :size="24" color="#fff"><User /></el-icon>
+            <div class="stat-icon">
+              <img src="@/assets/logo.png" class="stat-img" />
             </div>
             <div class="stat-info">
               <div class="stat-label">模型训练样本</div>
@@ -30,8 +20,8 @@
       <el-col :xs="24" :sm="12" :md="6">
         <el-card class="stat-card" :body-style="{ padding: '20px' }" shadow="hover">
           <div class="stat-content">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #F56C6C, #cf4949)">
-              <el-icon :size="24" color="#fff"><Warning /></el-icon>
+            <div class="stat-icon">
+              <img src="@/assets/logo.png" class="stat-img" />
             </div>
             <div class="stat-info">
               <div class="stat-label">历史高危案例</div>
@@ -46,8 +36,8 @@
       <el-col :xs="24" :sm="12" :md="6">
         <el-card class="stat-card" :body-style="{ padding: '20px' }" shadow="hover">
           <div class="stat-content">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #E6A23C, #c48016)">
-              <el-icon :size="24" color="#fff"><Files /></el-icon>
+            <div class="stat-icon">
+              <img src="@/assets/logo.png" class="stat-img" />
             </div>
             <div class="stat-info">
               <div class="stat-label">样本风险率</div>
@@ -62,8 +52,8 @@
       <el-col :xs="24" :sm="12" :md="6">
         <el-card class="stat-card" :body-style="{ padding: '20px' }" shadow="hover">
           <div class="stat-content">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #67C23A, #4e9e29)">
-              <el-icon :size="24" color="#fff"><Timer /></el-icon>
+            <div class="stat-icon">
+              <img src="@/assets/logo.png" class="stat-img" />
             </div>
             <div class="stat-info">
               <div class="stat-label">数据最后更新</div>
@@ -156,7 +146,7 @@ const stats = ref({ total: 0, high_risk: 0, ratio: 0, update_time: '加载中...
 onMounted(async () => {
   try {
     const res = await api.get('/dashboard/stats')
-    stats.value = res.data
+    if (res.data) stats.value = res.data
   } catch (e) {
     console.error('获取统计数据失败', e)
   }
@@ -182,10 +172,11 @@ onMounted(async () => {
 .stat-card:hover { transform: translateY(-4px); }
 .stat-content { display: flex; align-items: center; }
 .stat-icon {
-  width: 50px; height: 50px; border-radius: 12px;
+  width: 50px; height: 50px; border-radius: 50%;
   display: flex; justify-content: center; align-items: center;
-  margin-right: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  margin-right: 15px; overflow: hidden;
 }
+.stat-img { width: 100%; height: 100%; object-fit: cover; }
 .stat-label { color: #909399; font-size: 13px; margin-bottom: 4px; }
 .stat-value .num { font-size: 24px; font-weight: bold; color: #303133; }
 .stat-value .unit { font-size: 12px; margin-left: 4px; color: #909399; }

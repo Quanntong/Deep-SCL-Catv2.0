@@ -2,11 +2,7 @@
   <el-container class="layout-container">
     <el-aside width="240px" class="aside-menu">
       <div class="logo-area">
-        <img src="@/assets/logo.png" alt="HUT Logo" class="school-logo" />
-        <div class="logo-text">
-          <div class="school-name">湖南工业大学</div>
-          <div class="system-name">心理风险预测系统</div>
-        </div>
+        <img src="@/assets/icon_wide.png" alt="Logo" class="school-logo" />
       </div>
       
       <el-menu
@@ -123,10 +119,9 @@ body, html {
 }
 
 .school-logo {
-  width: 40px;
-  height: 40px;
+  width: 180px;
+  height: auto;
   object-fit: contain;
-  margin-right: 12px;
 }
 
 .logo-text {

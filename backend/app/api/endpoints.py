@@ -7,7 +7,7 @@ from io import BytesIO
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any
-from fastapi import APIRouter, Request, UploadFile, File, HTTPException
+from fastapi import APIRouter, Request, UploadFile, File, Form, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -70,8 +70,8 @@ async def predict_manual(request: Request, data: ManualRequest):
     return result
 
 @router.post("/predict/batch")
-async def predict_batch(request: Request, file: UploadFile = File(...)):
-    """批量文件预测"""
+async def predict_batch(request: Request, file: UploadFile = File(...), mode: str = Form("balanced")):
+    """批量文件预测（mode: strict/balanced/sensitive）"""
     if not file.filename.endswith(('.csv', '.xlsx', '.xls')):
         raise HTTPException(400, "仅支持 CSV 或 Excel 文件")
     
@@ -85,7 +85,7 @@ async def predict_batch(request: Request, file: UploadFile = File(...)):
         raise HTTPException(400, f"文件读取失败: {e}")
     
     model = request.app.state.model
-    results = model.predict_batch(df)
+    results = model.predict_batch(df, mode=mode)
     
     return {
         "results": results,
@@ -94,8 +94,8 @@ async def predict_batch(request: Request, file: UploadFile = File(...)):
     }
 
 @router.post("/predict/batch/export")
-async def export_batch(request: Request, file: UploadFile = File(...)):
-    """批量预测并导出 Excel（保留原始信息）"""
+async def export_batch(request: Request, file: UploadFile = File(...), mode: str = Form("balanced")):
+    """批量预测并导出 Excel（mode: strict/balanced/sensitive）"""
     if not file.filename.endswith(('.csv', '.xlsx', '.xls')):
         raise HTTPException(400, "仅支持 CSV 或 Excel 文件")
     
@@ -112,7 +112,7 @@ async def export_batch(request: Request, file: UploadFile = File(...)):
     original_df = df.copy()
     
     model = request.app.state.model
-    results = model.predict_batch(df)
+    results = model.predict_batch(df, mode=mode)
     
     # 添加预测结果列到原始数据
     original_df['风险状态'] = [('存在风险' if r['is_risk'] else '正常') for r in results]
