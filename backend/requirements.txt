@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pandas
+pydantic
+openpyxl
+joblib
+numpy
+scikit-learn
+catboost
+shap

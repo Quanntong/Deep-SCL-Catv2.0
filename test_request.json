@@ -1,0 +1,20 @@
+{
+  "scl90": {
+    "somatization": 1.5,
+    "obsessive_compulsive": 1.5,
+    "interpersonal_sensitivity": 1.5,
+    "depression": 1.5,
+    "anxiety": 1.5,
+    "hostility": 1.5,
+    "phobic_anxiety": 1.5,
+    "paranoid_ideation": 1.5,
+    "psychoticism": 1.5,
+    "other": 1.5
+  },
+  "epq": {
+    "E": 50,
+    "P": 50,
+    "N": 50,
+    "L": 50
+  }
+}
