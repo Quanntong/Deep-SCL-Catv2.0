@@ -1,14 +1,20 @@
 # -*- coding: utf-8 -*-
 """API 端点"""
 
+import os
 import pandas as pd
 from io import BytesIO
+from pathlib import Path
+from datetime import datetime
 from typing import List, Dict, Any
 from fastapi import APIRouter, Request, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 router = APIRouter()
+
+# 数据目录
+DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "raw"
 
 # ========== Schemas ==========
 class EPQFactors(BaseModel):
@@ -124,6 +130,29 @@ async def export_batch(request: Request, file: UploadFile = File(...)):
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         headers={'Content-Disposition': 'attachment; filename=prediction_results.xlsx'}
     )
+
+@router.get("/dashboard/stats")
+async def get_dashboard_stats():
+    """获取仪表盘真实统计数据"""
+    total, high_risk, update_time = 0, 0, "暂无数据"
+    
+    # 读取所有训练数据文件
+    if DATA_DIR.exists():
+        for f in DATA_DIR.glob("*.xlsx"):
+            try:
+                df = pd.read_excel(f)
+                total += len(df)
+                # 挂科数目 > 0 视为高风险
+                if '挂科数目' in df.columns:
+                    high_risk += int((df['挂科数目'] > 0).sum())
+                # 获取最新文件修改时间
+                mtime = datetime.fromtimestamp(f.stat().st_mtime)
+                update_time = mtime.strftime("%Y-%m-%d %H:%M")
+            except:
+                pass
+    
+    ratio = round(high_risk / total * 100, 1) if total > 0 else 0
+    return {"total": total, "high_risk": high_risk, "ratio": ratio, "update_time": update_time}
 
 @router.post("/scl90/calculate")
 async def calculate_scl90(answers: List[int]):
