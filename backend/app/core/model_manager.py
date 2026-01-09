@@ -78,13 +78,25 @@ class ModelManager:
             reg_path = models_dir / "catboost_regressor.joblib"
             self.regressor = joblib.load(reg_path) if reg_path.exists() else None
         
-        # 优化阈值 0.52（平衡召回率和精确率）
-        self.threshold = 0.52
+        # 加载配置（包含训练时计算的最优阈值）
+        config_path = models_dir / "model_config.json"
+        if config_path.exists():
+            with open(config_path) as f:
+                config = json.load(f)
+            self.thresholds = config.get("thresholds", {
+                "strict": 0.60, "balanced": 0.50, "sensitive": 0.35
+            })
+            self.feature_cols = config.get("feature_cols", FEATURE_COLS + ["cluster"])
+        else:
+            self.thresholds = {"strict": 0.60, "balanced": 0.50, "sensitive": 0.35}
+            self.feature_cols = FEATURE_COLS + ["cluster"]
+        
+        self.threshold = self.thresholds.get("balanced", 0.50)
     
     def _init_shap(self):
         try:
             if self.model_type == "linear":
-                self.explainer = shap.LinearExplainer(self.classifier, np.zeros((1, 15)))
+                self.explainer = shap.LinearExplainer(self.classifier, np.zeros((1, len(self.feature_cols))))
             else:
                 self.explainer = shap.TreeExplainer(self.classifier)
         except:
@@ -105,6 +117,11 @@ class ModelManager:
             if col not in df.columns:
                 df[col] = 2.0 if col in SCL90_FACTORS else 50.0
         df = df[FEATURE_COLS].fillna(df.median())
+        
+        # 添加特征工程（与训练时一致）
+        df["scl90_total"] = df[SCL90_FACTORS].mean(axis=1)
+        df["high_risk_score"] = (df["depression"] + df["anxiety"] + df["interpersonal_sensitivity"]) / 3
+        
         return df
     
     def predict(self, features: Dict[str, float], with_shap: bool = True) -> Dict[str, Any]:
@@ -132,8 +149,8 @@ class ModelManager:
         if self.regressor:
             pred_count = max(0, round(float(self.regressor.predict(X_input)[0]), 1))
         
-        # 优化逻辑：概率>=52% 或 预测挂科数>=0.7 才标记为风险
-        is_risk = (proba >= 0.52) or (pred_count >= 0.7)
+        # 使用 balanced 阈值判定
+        is_risk = (proba >= self.threshold) or (pred_count >= 0.7)
         
         result = {
             "is_risk": bool(is_risk),
@@ -149,10 +166,9 @@ class ModelManager:
                 shap_values = self.explainer.shap_values(X_input)
                 if isinstance(shap_values, list):
                     shap_values = shap_values[1]
-                feature_names = FEATURE_COLS + ["cluster"]
                 result["shap_values"] = [
                     {"feature": name, "value": float(val)}
-                    for name, val in zip(feature_names, shap_values[0] if len(shap_values.shape) > 1 else shap_values)
+                    for name, val in zip(self.feature_cols, shap_values[0] if len(shap_values.shape) > 1 else shap_values)
                 ]
             except:
                 result["shap_values"] = []
@@ -167,23 +183,22 @@ class ModelManager:
         return self.predict({**scl90, **epq})
     
     def predict_batch(self, df: pd.DataFrame, mode: str = "balanced") -> List[Dict[str, Any]]:
-        # 模式阈值配置
-        thresholds = {
-            "strict": {"prob": 0.60, "count": None},      # 精准：仅高概率
-            "balanced": {"prob": 0.52, "count": 0.7},     # 均衡：默认
-            "sensitive": {"prob": 0.45, "count": 0.4}     # 全面：低阈值
+        # 优化后的阈值配置（基于实际数据分布调优）
+        mode_config = {
+            "strict": {"prob": 0.58, "count": 0.9},      # 高精确率：prob>=0.58 OR count>=0.9
+            "balanced": {"prob": 0.52, "count": 0.7},   # 最优F1：prob>=0.52 OR count>=0.7
+            "sensitive": {"prob": 0.46, "count": 0.5}   # 高召回率：prob>=0.46 OR count>=0.5
         }
-        cfg = thresholds.get(mode, thresholds["balanced"])
+        config = mode_config.get(mode, mode_config["balanced"])
         
         df = df.rename(columns=COLUMN_MAP)
         results = []
         for _, row in df.iterrows():
             features = {col: row.get(col) for col in FEATURE_COLS}
             r = self.predict(features, with_shap=False)
-            # 根据模式重新判定风险
-            if cfg["count"] is None:
-                r["is_risk"] = r["risk_probability"] >= cfg["prob"]
-            else:
-                r["is_risk"] = (r["risk_probability"] >= cfg["prob"]) or (r["predicted_failed_count"] >= cfg["count"])
+            
+            # 根据模式判定风险：概率 OR 预测挂科数
+            r["is_risk"] = (r["risk_probability"] >= config["prob"]) or (r["predicted_failed_count"] >= config["count"])
+            r["mode_threshold"] = config["prob"]
             results.append(r)
         return results

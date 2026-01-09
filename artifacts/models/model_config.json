@@ -1,1 +1,27 @@
-{"threshold": 0.35, "model_type": "linear"}
+{
+  "model_type": "linear",
+  "thresholds": {
+    "strict": 0.55,
+    "balanced": 0.31,
+    "sensitive": 0.2
+  },
+  "feature_cols": [
+    "somatization",
+    "obsessive_compulsive",
+    "interpersonal_sensitivity",
+    "depression",
+    "anxiety",
+    "hostility",
+    "phobic_anxiety",
+    "paranoid_ideation",
+    "psychoticism",
+    "other",
+    "E",
+    "P",
+    "N",
+    "L",
+    "scl90_total",
+    "high_risk_score",
+    "cluster"
+  ]
+}
